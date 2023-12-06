@@ -78,8 +78,8 @@ public sealed class LoggerParameterTypeAnalyzer : DiagnosticAnalyzer
         context.RegisterCompilationStartAction(context =>
         {
             var ctx = new AnalyzerContext(context);
-            if (!ctx.IsValid)
-                return;
+            // if (!ctx.IsValid)
+            //     return;
 
             context.RegisterOperationAction(ctx.AnalyzeInvocationDeclaration, OperationKind.Invocation);
         });
@@ -403,6 +403,7 @@ public sealed class LoggerParameterTypeAnalyzer : DiagnosticAnalyzer
         {
             if (!Configuration.IsValid(context.Compilation, name, argumentType.Symbol, out var ruleFound))
             {
+                WriteDebugLine($"Invalid: {name} - {argumentType.Symbol} {ruleFound}");
                 var expectedSymbols = Configuration.GetSymbols(name);
                 var expectedSymbolsStr = string.Join(" or ", expectedSymbols.Select(s => $"'{s.ToDisplayString()}'"));
                 context.ReportDiagnostic(s_rule, argumentType.Location, name, expectedSymbolsStr, argumentType.Symbol?.ToDisplayString());
@@ -502,6 +503,11 @@ public sealed class LoggerParameterTypeAnalyzer : DiagnosticAnalyzer
 
             return message != null;
         }
+
+        private static void WriteDebugLine(string message)
+        {
+            // Console.WriteLine(message);
+        }
     }
 
     private sealed class LoggerConfigurationFile(Dictionary<string, ITypeSymbol[]> configuration)
@@ -535,8 +541,10 @@ public sealed class LoggerParameterTypeAnalyzer : DiagnosticAnalyzer
 
         public bool IsValid(Compilation compilation, string name, ITypeSymbol? type, out bool hasRule)
         {
+            WriteDebugLine($"IsValid({name}, {type})");
             if (configuration.TryGetValue(name, out var validSymbols))
             {
+                WriteDebugLine($"Found config: ({name}, {type}) - {validSymbols.Length}");
                 hasRule = true;
 
                 if (type == null)
@@ -548,15 +556,21 @@ public sealed class LoggerParameterTypeAnalyzer : DiagnosticAnalyzer
                         return true;
 
                     var conversion = compilation.ClassifyConversion(type, validSymbol);
-                    if (conversion.Exists && conversion.IsImplicit && conversion.IsNullable)
+                    // if (conversion.Exists && conversion.IsImplicit && conversion.IsNullable)
+                    if (conversion.Exists && conversion.IsImplicit )
                         return true;
                 }
 
                 return false;
             }
+            else {
+                configuration.Add(name,[type]);
+                hasRule = true;
+                return true;
+            }
 
-            hasRule = false;
-            return true;
+            // hasRule = false;
+            // return true;
         }
 
         public ISymbol[] GetSymbols(string name)
@@ -565,6 +579,11 @@ public sealed class LoggerParameterTypeAnalyzer : DiagnosticAnalyzer
                 return symbols;
 
             return [];
+        }
+
+        private static void WriteDebugLine(string message)
+        {
+            // Console.WriteLine(message);
         }
     }
 

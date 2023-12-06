@@ -100,15 +100,57 @@ logger.LogInformation("{Prop} {Name}", "test", 2, 3L);
               .WithSourceCode(SourceCode)
               .ValidateAsync();
     }
+    [Fact]
+    public async Task LogInformation_NoConfigurationFileMissmatchInSingleLogLine()
+    {
+        const string SourceCode = """
+using Microsoft.Extensions.Logging;
+
+ILogger logger = null;
+logger.LogInformation("{Prop} {Prop}", "test", [||]2);
+""";
+        await CreateProjectBuilder()
+              .WithSourceCode(SourceCode)
+              .ValidateAsync();
+    }
+    [Fact]
+    public async Task LogInformation_NoConfigurationFileMissmatchMultipleLogLines()
+    {
+        const string SourceCode = """
+using Microsoft.Extensions.Logging;
+
+ILogger logger = null;
+logger.LogInformation("{Prop}", "test");
+logger.LogInformation("{Prop}", [||]2);
+""";
+        await CreateProjectBuilder()
+              .WithSourceCode(SourceCode)
+              .ValidateAsync();
+    }
 
     [Fact]
-    public async Task LogInformation_EmptyConfigurationFile()
+    public async Task LogInformation_EmptyConfigurationFileIntBeforeLong()
     {
         const string SourceCode = """
 using Microsoft.Extensions.Logging;
 
 ILogger logger = null;
 logger.LogInformation("{Prop} {Name} {Name}", "test", 2, 3L);
+""";
+        await CreateProjectBuilder()
+              .WithSourceCode(SourceCode)
+              .AddAdditionalFile("LoggerParameterTypes.txt", "")
+              .ValidateAsync();
+    }
+    
+    [Fact]
+    public async Task LogInformation_EmptyConfigurationFileLongBeforeInt()
+    {
+        const string SourceCode = """
+using Microsoft.Extensions.Logging;
+
+ILogger logger = null;
+logger.LogInformation("{Prop} {Name} {Name}", "test", 2L, 3);
 """;
         await CreateProjectBuilder()
               .WithSourceCode(SourceCode)
